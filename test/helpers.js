@@ -7,12 +7,14 @@ exports.loop = function(n, iterator) {
     }
 };
 
-exports.deleteRandom = function(n, tree) {
+exports.deleteRandom = function(n, tree, gen) {
     var deleted = {};
     
     exports.loop(n, function(i) {
-        deleted[i] = Math.round(Math.random()) === 1;
-        if (deleted[i]) tree.delete(i);
+	oi = i;
+	if(gen) { i = gen(i); }
+        deleted[oi] = Math.round(Math.random()) === 1;
+        if (deleted[oi]) tree.delete(i);
     });
     
     return deleted;

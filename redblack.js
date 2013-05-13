@@ -10,15 +10,15 @@
         root.redblack = redblack;
     }
     
-    redblack.VERSION = '0.1.2';
+    redblack.VERSION = '0.1.3';
     
     redblack.noConflict = function() {
         root.redblack = orig;
         return redblack;
     };
     
-    redblack.tree = function() {
-        return new Tree();
+    redblack.tree = function(comparator) {
+        return new Tree(comparator);
     };
     
     var BLACK = redblack.BLACK = 'black';
@@ -63,9 +63,9 @@
         this.walk = function walk(node, iterator) {
             if (node === null) return;
             
-            if (start !== undefined && node.key < start) {
+            if (start !== undefined && self.tree.comparator(node.key, start) < 0) {
                 walk(node.right, iterator);
-            } else if (end !== undefined && node.key > end) {
+            } else if (end !== undefined && self.tree.comparator(node.key, end) > 0) {
                 walk(node.left, iterator);
             } else {
                 walk(node.left, iterator);
@@ -92,13 +92,15 @@
     // Tree
     // ---------------
     
-    function Tree() {
+    function Tree(comparator) {
         this.root = null;
         this.balancer = new Balancer(this);
+	this.comparator = comparator || defaultComparator; 
     };
     
     Tree.prototype.get = function(key) {
-        var node = find(this.root, key);
+	//console.log("this:", this);
+        var node = find(this.root, key, this.comparator);
         return node === null ? null : node.value;
     };
     
@@ -109,16 +111,18 @@
             this.root = newNode;
         } else {
             var node = this.root;
+	    var cmp;
             
             while (true) {
-                if (key < node.key) {
+		cmp = this.comparator(key, node.key);
+                if (cmp < 0) {
                     if (node.left === null) {
                         node.left = newNode;
                         break;
                     } else {
                         node = node.left;
                     }
-                } else if (key > node.key) {
+                } else if (cmp > 0) {
                     if (node.right === null) {
                         node.right = newNode;
                         break;
@@ -138,7 +142,7 @@
     };
     
     Tree.prototype.delete = function(key) {
-        var node = find(this.root, key);
+        var node = find(this.root, key, this.comparator);
         if (node === null) return;
         
         if (node.left !== null && node.right !== null) {
@@ -383,19 +387,64 @@
     function nodeColor(node) {
         return node === null ? BLACK : node.color;
     };
+
+    function defaultComparator(left, right) {
+	    if (left === right) return 0;
+	    if (left < right) return -1;
+	    else return 1;
+    }
     
-    function find(node, key) {
+    function find(node, key, comparator) {
+	//console.log("comparator:", comparator);
+	//console.log("\tdefault?", comparator === defaultComparator);
+	
+	var cmp;
         while (node !== null) {
-            if (key === node.key) {
+	    cmp = comparator(key, node.key);
+	    //console.log("cmp:", cmp);
+            if (cmp === 0) {
+		//console.log("\tmatch");
                 return node;
-            } else if (key < node.key) {
+            } else if (cmp < 0) {
+		//console.log("\tleft");
                 node = node.left;
-            } else if (key > node.key) {
+            } else { 
+		//console.log("\tright");
                 node = node.right;
             }
         }
         
         return node;
     };
+
+
+    redblack.find = find;
+
+    redblack.testrun = function() {
+	cmp = function(x, y) { return x.value - y.value; };
+	m = function(x) { return {value: x}; };
+	t = redblack.tree(cmp);
+	var i;
+
+	for(i = 1; i < 10000; i++) {
+	    t.insert(m(i), i);
+	}
+
+	console.log(t.get(m(9999)));
+	t.delete(m(9999));
+	console.log(t.get(m(9999)));
+
+	return;
+
+	t.insert(m(1), 1);
+	t.insert(m(2), 2);
+	console.log(t.get(m(1)));
+	console.log(t.get(m(2)));
+	t.delete(m(1));
+	console.log(t.get(m(1)));
+	console.log(t.get(m(2)));
+    };
     
 })();
+
+//module.exports.testrun();
